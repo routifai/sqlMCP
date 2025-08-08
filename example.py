@@ -39,7 +39,6 @@ class EnhancedChatbotAnalyzer:
         self.compiled_patterns = self._compile_patterns()
         self.session_cache = {}
         self.keyword_stats = defaultdict(int)
-        self.fuzzy_cache = {}  # FIX: Initialize fuzzy_cache
         self._text_cache = {}  # Cache for lowercase text
         
     def _initialize_categories(self) -> Dict[str, CategoryConfig]:
@@ -61,7 +60,7 @@ class EnhancedChatbotAnalyzer:
                     "podman": 1.8, "containerd": 1.8, "docker-compose": 2.0, "dockerfile": 2.0,
                     "containerization": 2.0, "orchestration": 2.0, "microservices": 2.0,
                     "service mesh": 2.0, "ingress": 1.8, "namespace": 1.8, "pod": 1.8,
-                    "deployment": 2.0, "service": 1.5, "configmap": 1.8, "secret": 1.8,
+                    "service": 1.5, "configmap": 1.8, "secret": 1.8,
                     
                     # IaC & Configuration
                     "terraform": 2.5, "ansible": 2.5, "puppet": 2.0, "chef": 2.0,
@@ -326,7 +325,7 @@ class EnhancedChatbotAnalyzer:
                     
                     # Advanced ML
                     "generative ai": 2.5, "large language model": 2.5, "foundation model": 2.5,
-                    "multimodal": 2.0, "computer vision": 2.2, "object detection": 2.0,
+                    "multimodal": 2.0, "object detection": 2.0,
                     "image classification": 2.0, "semantic segmentation": 2.0, "instance segmentation": 2.0,
                     "time series": 1.8, "forecasting": 1.8, "anomaly detection": 2.0,
                     "reinforcement learning": 2.2, "q-learning": 2.0, "policy gradient": 2.0,
@@ -513,6 +512,10 @@ class EnhancedChatbotAnalyzer:
         """Classify a message into categories with confidence score"""
         if not text or len(text.strip()) < 3:
             return "Uncategorized", 0.0, []
+        
+        # Memory management: Clear text cache if it gets too large
+        if len(self._text_cache) > 10000:
+            self._text_cache.clear()
         
         # Calculate scores for all categories
         scores = {}
@@ -785,16 +788,14 @@ class EnhancedChatbotAnalyzer:
     
     def get_performance_stats(self) -> Dict:
         """Get performance statistics for the analyzer"""
-        fuzzy_matches = sum(1 for k in self.keyword_stats.keys() if k.endswith('_fuzzy'))
-        regular_matches = sum(1 for k in self.keyword_stats.keys() if not k.endswith('_fuzzy'))
-        
         return {
-            'cache_size': len(self.fuzzy_cache),  # FIX: Now properly initialized
             'text_cache_size': len(self._text_cache),
+            'session_cache_size': len(self.session_cache),
             'keyword_stats': dict(self.keyword_stats),
             'categories_processed': len(self.categories),
             'total_keywords': sum(len(cat.keywords) for cat in self.categories.values()),
-            'fuzzy_match_rate': (fuzzy_matches / max(regular_matches, 1)) * 100 if regular_matches > 0 else 0
+            'total_patterns': sum(len(cat.patterns) for cat in self.categories.values()),
+            'keywords_hit_count': sum(self.keyword_stats.values())
         }
     
     def _calculate_tech_vs_business_split(self, df: pd.DataFrame) -> Dict:
