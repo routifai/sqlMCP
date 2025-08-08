@@ -113,60 +113,56 @@ class EnhancedChatbotAnalyzer:
             
             "Backend Development": CategoryConfig(
                 keywords={
-                    # Languages
-                    "python": 1.5, "java": 1.5, "c#": 1.5, "golang": 2.0, "go": 1.2,
-                    "rust": 2.0, "scala": 1.8, "kotlin": 1.8, "php": 1.2, "ruby": 1.5,
-                    "node.js": 2.0, "typescript": 2.0, "javascript": 1.5, "c++": 1.8,
-                    "c": 1.5, "swift": 1.8, "objective-c": 1.8, "perl": 1.2,
+                    # Backend Frameworks & Technologies
+                    "spring boot": 2.5, "spring framework": 2.5, "django": 2.5, "flask": 2.0, 
+                    "fastapi": 2.5, "express.js": 2.5, "nestjs": 2.5, "rails": 2.5, 
+                    "laravel": 2.5, "asp.net core": 2.5, "gin": 2.0, "echo": 2.0,
+                    "koa": 2.0, "hapi": 2.0, "strapi": 2.5, "symfony": 2.5,
                     
-                    # Frameworks
-                    "spring": 2.0, "django": 2.0, "flask": 1.8, "fastapi": 2.0,
-                    "express": 1.8, "nestjs": 2.0, "rails": 1.8, "laravel": 1.8,
-                    ".net": 2.0, "asp.net": 2.0, "gin": 1.8, "echo": 1.8,
-                    "koa": 1.8, "hapi": 1.8, "adonis": 1.8, "strapi": 2.0,
-                    "symfony": 1.8, "codeigniter": 1.8, "yii": 1.8, "phalcon": 1.8,
+                    # API Technologies
+                    "rest api": 2.5, "graphql": 2.5, "grpc": 2.5, "websocket": 2.5,
+                    "openapi": 2.0, "swagger": 2.0, "api gateway": 2.5,
                     
-                    # API & Backend Concepts
-                    "rest api": 2.0, "graphql": 2.2, "grpc": 2.2, "websocket": 2.0,
-                    "microservice": 2.0, "serverless": 2.0, "crud": 1.5,
-                    "authentication": 1.8, "authorization": 1.8, "jwt": 2.0,
-                    "oauth": 2.0, "middleware": 1.8, "orm": 1.8,
-                    "api": 2.0, "endpoint": 1.8, "service": 1.5, "controller": 1.8,
-                    "repository": 1.8, "model": 1.5, "entity": 1.8, "dto": 1.8,
-                    "validation": 1.8, "serialization": 1.8, "deserialization": 1.8,
-                    "rate limiting": 1.8, "caching": 1.8, "session": 1.5,
+                    # Backend Architecture
+                    "microservice": 2.5, "serverless": 2.5, "monolith": 2.0,
+                    "clean architecture": 2.5, "hexagonal architecture": 2.5, "ddd": 2.5,
+                    "event sourcing": 2.5, "cqrs": 2.5, "saga pattern": 2.5,
                     
-                    # Database & Data
-                    "database": 1.8, "sql": 1.5, "nosql": 1.8, "postgresql": 2.0,
-                    "mysql": 1.8, "mongodb": 2.0, "redis": 2.0, "elasticsearch": 2.0,
-                    "cassandra": 2.0, "dynamodb": 2.0, "firebase": 2.0, "supabase": 2.0,
-                    "migration": 1.8, "schema": 1.8, "index": 1.8, "query": 1.5,
-                    "transaction": 1.8, "connection pool": 1.8, "connection": 1.5,
+                    # Authentication & Security
+                    "jwt": 2.5, "oauth2": 2.5, "openid connect": 2.5, "saml": 2.5,
+                    "bcrypt": 2.0, "passport": 2.0, "auth0": 2.5,
                     
-                    # Architecture & Patterns
-                    "mvc": 1.8, "mvvm": 1.8, "repository pattern": 2.0, "factory pattern": 1.8,
-                    "singleton": 1.8, "dependency injection": 2.0, "inversion of control": 2.0,
-                    "clean architecture": 2.0, "hexagonal architecture": 2.0, "ddd": 2.0,
-                    "event sourcing": 2.0, "cqrs": 2.0, "saga pattern": 2.0,
+                    # Database Technologies
+                    "postgresql": 2.5, "mysql": 2.5, "mongodb": 2.5, "redis": 2.5,
+                    "elasticsearch": 2.5, "cassandra": 2.5, "dynamodb": 2.5,
+                    "prisma": 2.5, "sequelize": 2.0, "typeorm": 2.0, "hibernate": 2.5,
+                    
+                    # Backend Patterns
+                    "repository pattern": 2.5, "factory pattern": 2.0, "singleton pattern": 2.0,
+                    "dependency injection": 2.5, "inversion of control": 2.5,
+                    "middleware": 2.0, "interceptor": 2.0, "decorator": 2.0,
+                    
+                    # Data Processing
+                    "serialization": 2.0, "deserialization": 2.0, "marshalling": 2.0,
+                    "data transfer object": 2.0, "dto": 2.0, "entity": 2.0,
+                    "migration": 2.0, "schema migration": 2.5,
                 },
                 patterns=[
-                    (r'\bapi\s+(?:endpoint|design|development|integration)\b', 2.0),
-                    (r'\b(?:rest|restful)\s+(?:api|service|endpoint)\b', 2.0),
-                    (r'\b(?:backend|back-end|server-side)\s+(?:code|logic|development)\b', 2.0),
-                    (r'\b(?:database|db)\s+(?:query|connection|pool|optimization)\b', 1.8),
-                    (r'\b(?:api|service)\s+(?:design|development|implementation)\b', 2.0),
-                    (r'\b(?:authentication|authorization)\s+(?:system|mechanism|flow)\b', 2.0),
-                    (r'\b(?:database|db)\s+(?:migration|schema|index)\b', 1.8),
-                    (r'\b(?:microservice|service)\s+(?:architecture|design|deployment)\b', 2.0),
-                    (r'\b(?:graphql|grpc)\s+(?:api|service|endpoint)\b', 2.2),
-                    (r'\b(?:orm|object\s+relational\s+mapping)\s+(?:setup|configuration)\b', 1.8),
-                    (r'\b(?:jwt|oauth)\s+(?:token|authentication|authorization)\b', 2.0),
-                    (r'\b(?:websocket|real-time)\s+(?:communication|connection)\b', 2.0),
-                    (r'\b(?:repository|factory|singleton)\s+pattern\b', 1.8),
-                    (r'\b(?:clean|hexagonal)\s+architecture\b', 2.0),
-                    (r'\b(?:event\s+sourcing|cqrs|saga)\s+pattern\b', 2.0),
+                    (r'\b(?:spring|django|flask|fastapi|express|nestjs|rails|laravel)\s+(?:backend|api|service)\b', 2.5),
+                    (r'\b(?:rest|graphql|grpc)\s+(?:api|endpoint|service)\s+(?:development|design|implementation)\b', 2.5),
+                    (r'\b(?:microservice|serverless)\s+(?:architecture|design|deployment|development)\b', 2.5),
+                    (r'\b(?:postgresql|mysql|mongodb|redis|elasticsearch)\s+(?:database|connection|query|migration)\b', 2.5),
+                    (r'\b(?:jwt|oauth|authentication)\s+(?:token|flow|system|implementation)\b', 2.5),
+                    (r'\b(?:clean|hexagonal|ddd)\s+(?:architecture|design|pattern)\b', 2.5),
+                    (r'\b(?:repository|factory|singleton)\s+pattern\s+(?:implementation|design)\b', 2.5),
+                    (r'\b(?:dependency\s+injection|inversion\s+of\s+control)\s+(?:container|setup)\b', 2.5),
+                    (r'\b(?:event\s+sourcing|cqrs|saga)\s+(?:pattern|architecture|implementation)\b', 2.5),
+                    (r'\b(?:prisma|sequelize|typeorm|hibernate)\s+(?:orm|database|migration)\b', 2.5),
+                    (r'\b(?:middleware|interceptor|decorator)\s+(?:implementation|setup|configuration)\b', 2.0),
+                    (r'\b(?:serialization|deserialization|marshalling)\s+(?:data|object|format)\b', 2.0),
+                    (r'\b(?:api\s+gateway|service\s+mesh)\s+(?:configuration|deployment)\b', 2.5),
                 ],
-                min_score=0.5,
+                min_score=1.0,
                 priority=1
             ),
             
