@@ -40,6 +40,8 @@ class EnhancedChatbotAnalyzer:
         self.session_cache = {}
         self.keyword_stats = defaultdict(int)
         self._text_cache = {}  # Cache for lowercase text
+        self.classification_cache = {}  # Cache for classification results
+        self.match_details_cache = {}  # Cache for match details
         
     def _initialize_categories(self) -> Dict[str, CategoryConfig]:
         """Initialize categories with weighted keywords and patterns"""
@@ -480,11 +482,12 @@ class EnhancedChatbotAnalyzer:
             self._text_cache[text] = text.lower()
         return self._text_cache[text]
     
-    def calculate_category_score(self, text: str, category_name: str) -> float:
-        """Calculate weighted score for a category based on text"""
+    def calculate_category_score(self, text: str, category_name: str) -> Tuple[float, List[str], List[str]]:
+        """Calculate weighted score for a category based on text with match details"""
         text_lower = self._get_lowercase_text(text)  # FIX: Use cached lowercase
         score = 0.0
         matched_keywords = []
+        matched_patterns = []
         
         category = self.categories[category_name]
         
@@ -499,6 +502,7 @@ class EnhancedChatbotAnalyzer:
         for pattern, weight in self.compiled_patterns[category_name]:
             if pattern.search(text):
                 score += weight
+                matched_patterns.append(pattern.pattern)
         
         # Apply length normalization (FIX: Improved normalization)
         text_length = len(text.split())
@@ -506,21 +510,35 @@ class EnhancedChatbotAnalyzer:
             # Use smoother normalization that doesn't penalize short texts as much
             score = score * (1 + np.log10(text_length)) / np.log10(max(text_length, 10))
         
-        return score
+        return score, matched_keywords, matched_patterns
     
-    def classify_message(self, text: str) -> Tuple[str, float, List[str]]:
-        """Classify a message into categories with confidence score"""
+    def classify_message(self, text: str) -> Tuple[str, float, List[str], Dict[str, List[str]]]:
+        """Classify a message into categories with confidence score and match details"""
         if not text or len(text.strip()) < 3:
-            return "Uncategorized", 0.0, []
+            return "Uncategorized", 0.0, [], {}
         
-        # Memory management: Clear text cache if it gets too large
+        # Check cache first
+        text_hash = hashlib.md5(text.encode()).hexdigest()
+        if text_hash in self.classification_cache:
+            return self.classification_cache[text_hash]
+        
+        # Memory management: Clear caches if they get too large
         if len(self._text_cache) > 10000:
             self._text_cache.clear()
+        if len(self.classification_cache) > 5000:
+            self.classification_cache.clear()
         
-        # Calculate scores for all categories
+        # Calculate scores for all categories with match details
         scores = {}
+        match_details = {}
+        
         for cat_name in self.categories:
-            scores[cat_name] = self.calculate_category_score(text, cat_name)
+            score, matched_keywords, matched_patterns = self.calculate_category_score(text, cat_name)
+            scores[cat_name] = score
+            match_details[cat_name] = {
+                'keywords': matched_keywords,
+                'patterns': matched_patterns
+            }
         
         # Sort categories by priority and score
         sorted_categories = sorted(
@@ -533,7 +551,9 @@ class EnhancedChatbotAnalyzer:
         
         # Check if score meets minimum threshold
         if best_score < self.categories[best_category].min_score:
-            return "Uncategorized", best_score, []
+            result = ("Uncategorized", best_score, [], match_details)
+            self.classification_cache[text_hash] = result
+            return result
         
         # Get secondary categories (multi-label classification)
         secondary_categories = []
@@ -541,9 +561,11 @@ class EnhancedChatbotAnalyzer:
             if score >= self.categories[cat].min_score * 0.7:  # 70% of min threshold
                 secondary_categories.append(cat)
         
-        return best_category, best_score, secondary_categories
+        result = (best_category, best_score, secondary_categories, match_details)
+        self.classification_cache[text_hash] = result
+        return result
     
-    def classify_messages_batch(self, texts: List[str]) -> List[Tuple[str, float, List[str]]]:
+    def classify_messages_batch(self, texts: List[str]) -> List[Tuple[str, float, List[str], Dict[str, List[str]]]]:
         """Batch classify messages for better performance"""
         results = []
         for text in texts:
@@ -745,13 +767,29 @@ class EnhancedChatbotAnalyzer:
         # Save detailed results
         self._save_results(analysis_results, df_results)
         
+        # Save classification cache for future use
+        self.save_classification_cache()
+        
         return analysis_results
     
     def _process_chunk_vectorized(self, chunk: pd.DataFrame) -> pd.DataFrame:
         """Process chunk with better performance using apply"""
         # FIX: More efficient processing
         def classify_row(row):
-            primary_cat, confidence, secondary_cats = self.classify_message(row['input'])
+            primary_cat, confidence, secondary_cats, match_details = self.classify_message(row['input'])
+            
+            # Get the best category's match details
+            best_matches = match_details.get(primary_cat, {})
+            matched_keywords = best_matches.get('keywords', [])
+            matched_patterns = best_matches.get('patterns', [])
+            
+            # Create match summary
+            match_summary = []
+            if matched_keywords:
+                match_summary.append(f"Keywords: {', '.join(matched_keywords)}")
+            if matched_patterns:
+                match_summary.append(f"Patterns: {', '.join(matched_patterns)}")
+            
             return pd.Series({
                 'session_id': row['session_id'],
                 'message_id': row['message_id'],
@@ -759,7 +797,10 @@ class EnhancedChatbotAnalyzer:
                 'input': row['input'],
                 'primary_category': primary_cat,
                 'confidence_score': confidence,
-                'secondary_categories': secondary_cats
+                'secondary_categories': secondary_cats,
+                'matched_keywords': '; '.join(matched_keywords) if matched_keywords else '',
+                'matched_patterns': '; '.join(matched_patterns) if matched_patterns else '',
+                'match_summary': ' | '.join(match_summary) if match_summary else 'No matches'
             })
         
         return chunk.apply(classify_row, axis=1)
@@ -790,12 +831,14 @@ class EnhancedChatbotAnalyzer:
         """Get performance statistics for the analyzer"""
         return {
             'text_cache_size': len(self._text_cache),
+            'classification_cache_size': len(self.classification_cache),
             'session_cache_size': len(self.session_cache),
             'keyword_stats': dict(self.keyword_stats),
             'categories_processed': len(self.categories),
             'total_keywords': sum(len(cat.keywords) for cat in self.categories.values()),
             'total_patterns': sum(len(cat.patterns) for cat in self.categories.values()),
-            'keywords_hit_count': sum(self.keyword_stats.values())
+            'keywords_hit_count': sum(self.keyword_stats.values()),
+            'cache_hit_rate': f"{(len(self.classification_cache) / max(sum(self.keyword_stats.values()), 1)) * 100:.1f}%"
         }
     
     def _calculate_tech_vs_business_split(self, df: pd.DataFrame) -> Dict:
@@ -861,6 +904,32 @@ class EnhancedChatbotAnalyzer:
         with open(checkpoint_file, 'wb') as f:
             pickle.dump(results, f)
         logging.info(f"Checkpoint saved: {checkpoint_file}")
+    
+    def save_classification_cache(self, filename: str = "classification_cache.pkl"):
+        """Save classification cache for reuse"""
+        cache_file = self.cache_dir / filename
+        cache_data = {
+            'classification_cache': self.classification_cache,
+            'keyword_stats': dict(self.keyword_stats),
+            'timestamp': datetime.now().isoformat()
+        }
+        with open(cache_file, 'wb') as f:
+            pickle.dump(cache_data, f)
+        logging.info(f"Classification cache saved: {cache_file}")
+    
+    def load_classification_cache(self, filename: str = "classification_cache.pkl"):
+        """Load classification cache from file"""
+        cache_file = self.cache_dir / filename
+        if cache_file.exists():
+            with open(cache_file, 'rb') as f:
+                cache_data = pickle.load(f)
+            self.classification_cache = cache_data.get('classification_cache', {})
+            # Update keyword stats
+            for keyword, count in cache_data.get('keyword_stats', {}).items():
+                self.keyword_stats[keyword] = count
+            logging.info(f"Classification cache loaded: {cache_file} ({len(self.classification_cache)} entries)")
+        else:
+            logging.info(f"No existing cache found: {cache_file}")
     
     def _save_results(self, analysis_results: Dict, df_results: pd.DataFrame):
         """Save analysis results in multiple formats"""
@@ -1171,6 +1240,9 @@ def main():
     """Main execution function"""
     # Initialize analyzer
     analyzer = EnhancedChatbotAnalyzer(cache_dir="./analysis_cache")
+    
+    # Load existing classification cache if available
+    analyzer.load_classification_cache()
     
     # Connect to database
     conn = get_db_connection()
