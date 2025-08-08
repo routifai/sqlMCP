@@ -86,10 +86,10 @@ class EnhancedChatbotAnalyzer:
                     "jaeger": 1.8, "zipkin": 1.8, "opentelemetry": 2.0,
                     
                     # Networking & Security
-                    "vpc": 1.8, "subnet": 1.8, "security group": 1.8, "firewall": 1.8,
-                    "load balancer": 1.8, "alb": 1.8, "nlb": 1.8, "elb": 1.8,
-                    "ssl": 1.8, "tls": 1.8, "certificate": 1.8, "vpn": 1.8,
-                    "bastion": 1.8, "jump server": 1.8, "nat gateway": 1.8,
+                    "security group": 1.8, "firewall": 1.8, "load balancer": 1.8, 
+                    "alb": 1.8, "nlb": 1.8, "elb": 1.8, "ssl": 1.8, "tls": 1.8, 
+                    "certificate": 1.8, "vpn": 1.8, "bastion": 1.8, "jump server": 1.8, 
+                    "nat gateway": 1.8,
                 },
                 patterns=[
                     (r'\b(?:deploy|deployment)\s+(?:to|on|in)\s+(?:prod|production|staging)\b', 2.0),
@@ -308,7 +308,7 @@ class EnhancedChatbotAnalyzer:
                     "random forest": 1.8, "svm": 1.8, "k-means": 1.8, "clustering": 1.8,
                     
                     # AI/ML Applications
-                    "natural language processing": 2.2, "computer vision": 2.2, "speech recognition": 2.0,
+                    "natural language processing": 2.2, "speech recognition": 2.0,
                     "recommendation system": 2.0, "chatbot": 2.0, "virtual assistant": 2.0,
                     "autonomous vehicle": 2.0, "robotics": 2.0, "expert system": 1.8,
                     "knowledge graph": 2.0, "semantic analysis": 2.0, "sentiment analysis": 2.0,
@@ -330,7 +330,7 @@ class EnhancedChatbotAnalyzer:
                     "multimodal": 2.0, "object detection": 2.0,
                     "image classification": 2.0, "semantic segmentation": 2.0, "instance segmentation": 2.0,
                     "time series": 1.8, "forecasting": 1.8, "anomaly detection": 2.0,
-                    "reinforcement learning": 2.2, "q-learning": 2.0, "policy gradient": 2.0,
+                    "q-learning": 2.0, "policy gradient": 2.0,
                     
                     # Data Science Process
                     "data science": 2.0, "statistical analysis": 1.8, "hypothesis testing": 1.8,
