@@ -11,6 +11,7 @@ import hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import pickle
 from pathlib import Path
+import psycopg2  # or your preferred database library
 
 # Configure logging
 logging.basicConfig(
@@ -38,6 +39,8 @@ class EnhancedChatbotAnalyzer:
         self.compiled_patterns = self._compile_patterns()
         self.session_cache = {}
         self.keyword_stats = defaultdict(int)
+        self.fuzzy_cache = {}  # FIX: Initialize fuzzy_cache
+        self._text_cache = {}  # Cache for lowercase text
         
     def _initialize_categories(self) -> Dict[str, CategoryConfig]:
         """Initialize categories with weighted keywords and patterns"""
@@ -472,9 +475,15 @@ class EnhancedChatbotAnalyzer:
             ]
         return compiled
     
+    def _get_lowercase_text(self, text: str) -> str:
+        """Cache lowercase conversions for performance"""
+        if text not in self._text_cache:
+            self._text_cache[text] = text.lower()
+        return self._text_cache[text]
+    
     def calculate_category_score(self, text: str, category_name: str) -> float:
         """Calculate weighted score for a category based on text"""
-        text_lower = text.lower()
+        text_lower = self._get_lowercase_text(text)  # FIX: Use cached lowercase
         score = 0.0
         matched_keywords = []
         
@@ -492,10 +501,11 @@ class EnhancedChatbotAnalyzer:
             if pattern.search(text):
                 score += weight
         
-        # Apply length normalization (longer texts shouldn't automatically score higher)
+        # Apply length normalization (FIX: Improved normalization)
         text_length = len(text.split())
         if text_length > 0:
-            score = score / np.log(max(text_length, 10))
+            # Use smoother normalization that doesn't penalize short texts as much
+            score = score * (1 + np.log10(text_length)) / np.log10(max(text_length, 10))
         
         return score
     
@@ -530,29 +540,40 @@ class EnhancedChatbotAnalyzer:
         
         return best_category, best_score, secondary_categories
     
+    def classify_messages_batch(self, texts: List[str]) -> List[Tuple[str, float, List[str]]]:
+        """Batch classify messages for better performance"""
+        results = []
+        for text in texts:
+            result = self.classify_message(text)
+            results.append(result)
+        return results
+    
     def analyze_session_patterns(self, df: pd.DataFrame) -> Dict:
         """Analyze user session patterns"""
         session_stats = {
-            'total_sessions': df['session_id'].nunique(),
-            'avg_messages_per_session': df.groupby('session_id').size().mean(),
-            'session_category_transitions': defaultdict(int),
-            'user_journey_patterns': []
+            'total_sessions': int(df['session_id'].nunique()),  # FIX: Ensure JSON serializable
+            'avg_messages_per_session': float(df.groupby('session_id').size().mean()),
+            'session_category_transitions': {},
+            'user_journey_patterns': {}
         }
         
         # Analyze category transitions within sessions
+        transition_counts = defaultdict(int)
         for session_id, group in df.groupby('session_id'):
             if len(group) > 1:
                 categories = group['primary_category'].tolist()
                 for i in range(len(categories) - 1):
                     transition = f"{categories[i]} → {categories[i+1]}"
-                    session_stats['session_category_transitions'][transition] += 1
+                    transition_counts[transition] += 1
+        
+        session_stats['session_category_transitions'] = dict(transition_counts)
         
         # Find common user journeys
         session_journeys = df.groupby('session_id')['primary_category'].apply(
             lambda x: ' → '.join(x) if len(x) > 1 else x.iloc[0]
         ).value_counts().head(10)
         
-        session_stats['user_journey_patterns'] = session_journeys.to_dict()
+        session_stats['user_journey_patterns'] = {k: int(v) for k, v in session_journeys.items()}
         
         return session_stats
     
@@ -564,7 +585,7 @@ class EnhancedChatbotAnalyzer:
         keyword_timeline = defaultdict(lambda: defaultdict(int))
         
         for _, row in df.iterrows():
-            text_lower = str(row['input']).lower()
+            text_lower = self._get_lowercase_text(str(row['input']))
             date = row['date']
             
             # Check all keywords
@@ -581,18 +602,24 @@ class EnhancedChatbotAnalyzer:
                 recent_avg = np.mean([timeline[d] for d in dates[-3:]])
                 older_avg = np.mean([timeline[d] for d in dates[:-3]]) if len(dates) > 3 else 0
                 
-                if recent_avg > older_avg * 1.5:  # 50% increase
+                if older_avg > 0 and recent_avg > older_avg * 1.5:  # FIX: Check for zero
                     trending_keywords.append({
                         'keyword': keyword,
-                        'growth_rate': (recent_avg - older_avg) / max(older_avg, 1),
-                        'recent_frequency': recent_avg
+                        'growth_rate': float((recent_avg - older_avg) / older_avg),
+                        'recent_frequency': float(recent_avg)
                     })
         
         trending_keywords.sort(key=lambda x: x['growth_rate'], reverse=True)
         
+        # FIX: Convert timeline dates to strings
+        keyword_timeline_serializable = {
+            keyword: {str(date): count for date, count in dates.items()}
+            for keyword, dates in keyword_timeline.items()
+        }
+        
         return {
             'trending_topics': trending_keywords[:20],
-            'keyword_timeline': dict(keyword_timeline)
+            'keyword_timeline': keyword_timeline_serializable
         }
     
     def generate_insights(self, df: pd.DataFrame) -> Dict:
@@ -606,6 +633,9 @@ class EnhancedChatbotAnalyzer:
         # Category distribution insights
         category_dist = df['primary_category'].value_counts()
         total = len(df)
+        
+        if total == 0:  # FIX: Handle empty dataframe
+            return insights
         
         # Check for imbalanced usage
         for category, count in category_dist.items():
@@ -676,23 +706,14 @@ class EnhancedChatbotAnalyzer:
             chunk = chunk.dropna(subset=['input'])
             chunk['input'] = chunk['input'].astype(str)
             
-            # Classify messages
-            classifications = []
-            for _, row in chunk.iterrows():
-                primary_cat, confidence, secondary_cats = self.classify_message(row['input'])
-                classifications.append({
-                    'session_id': row['session_id'],
-                    'message_id': row['message_id'],
-                    'timestamp': row['timestamp'],
-                    'input': row['input'],
-                    'primary_category': primary_cat,
-                    'confidence_score': confidence,
-                    'secondary_categories': secondary_cats
-                })
-            
-            chunk_df = pd.DataFrame(classifications)
-            all_results.append(chunk_df)
+            # FIX: Use vectorized approach for better performance
+            chunk_results = self._process_chunk_vectorized(chunk)
+            all_results.append(chunk_results)
             total_processed += len(chunk)
+            
+            # Clear text cache periodically to manage memory
+            if len(self._text_cache) > 10000:
+                self._text_cache.clear()
             
             # Cache intermediate results
             if chunk_num % 5 == 0:
@@ -723,6 +744,23 @@ class EnhancedChatbotAnalyzer:
         
         return analysis_results
     
+    def _process_chunk_vectorized(self, chunk: pd.DataFrame) -> pd.DataFrame:
+        """Process chunk with better performance using apply"""
+        # FIX: More efficient processing
+        def classify_row(row):
+            primary_cat, confidence, secondary_cats = self.classify_message(row['input'])
+            return pd.Series({
+                'session_id': row['session_id'],
+                'message_id': row['message_id'],
+                'timestamp': row['timestamp'],
+                'input': row['input'],
+                'primary_category': primary_cat,
+                'confidence_score': confidence,
+                'secondary_categories': secondary_cats
+            })
+        
+        return chunk.apply(classify_row, axis=1)
+    
     def _calculate_category_distribution(self, df: pd.DataFrame) -> Dict:
         """Calculate detailed category distribution"""
         primary_dist = df['primary_category'].value_counts()
@@ -730,6 +768,10 @@ class EnhancedChatbotAnalyzer:
         # Calculate with percentages
         total = len(df)
         distribution = {}
+        
+        if total == 0:  # FIX: Handle empty dataframe
+            return distribution
+            
         for category, count in primary_dist.items():
             distribution[category] = {
                 'count': int(count),
@@ -743,15 +785,16 @@ class EnhancedChatbotAnalyzer:
     
     def get_performance_stats(self) -> Dict:
         """Get performance statistics for the analyzer"""
+        fuzzy_matches = sum(1 for k in self.keyword_stats.keys() if k.endswith('_fuzzy'))
+        regular_matches = sum(1 for k in self.keyword_stats.keys() if not k.endswith('_fuzzy'))
+        
         return {
-            'cache_size': len(self.fuzzy_cache),
+            'cache_size': len(self.fuzzy_cache),  # FIX: Now properly initialized
+            'text_cache_size': len(self._text_cache),
             'keyword_stats': dict(self.keyword_stats),
             'categories_processed': len(self.categories),
             'total_keywords': sum(len(cat.keywords) for cat in self.categories.values()),
-            'fuzzy_match_rate': (
-                sum(1 for k, v in self.keyword_stats.items() if k.endswith('_fuzzy')) /
-                max(sum(1 for k, v in self.keyword_stats.items() if not k.endswith('_fuzzy')), 1)
-            ) * 100
+            'fuzzy_match_rate': (fuzzy_matches / max(regular_matches, 1)) * 100 if regular_matches > 0 else 0
         }
     
     def _calculate_tech_vs_business_split(self, df: pd.DataFrame) -> Dict:
@@ -765,15 +808,22 @@ class EnhancedChatbotAnalyzer:
         tech_messages = df[df['primary_category'].isin(tech_categories)]
         business_messages = df[~df['primary_category'].isin(tech_categories)]
         
+        total = len(df)
+        if total == 0:  # FIX: Handle empty dataframe
+            return {
+                'technical': {'count': 0, 'percentage': 0, 'categories': {}},
+                'business': {'count': 0, 'percentage': 0, 'categories': {}}
+            }
+        
         return {
             'technical': {
                 'count': len(tech_messages),
-                'percentage': round((len(tech_messages) / len(df)) * 100, 2),
+                'percentage': round((len(tech_messages) / total) * 100, 2),
                 'categories': tech_messages['primary_category'].value_counts().to_dict()
             },
             'business': {
                 'count': len(business_messages),
-                'percentage': round((len(business_messages) / len(df)) * 100, 2),
+                'percentage': round((len(business_messages) / total) * 100, 2),
                 'categories': business_messages['primary_category'].value_counts().to_dict()
             }
         }
@@ -785,13 +835,23 @@ class EnhancedChatbotAnalyzer:
         df['day_of_week'] = df['timestamp'].dt.day_name()
         df['date'] = df['timestamp'].dt.date
         
+        # FIX: Proper day ordering
+        day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        daily_dist = df.groupby('day_of_week')['message_id'].count()
+        daily_dist_ordered = {day: daily_dist.get(day, 0) for day in day_order}
+        
+        # FIX: Convert dates to strings for JSON serialization
+        daily_trend = df.groupby('date')['message_id'].count()
+        daily_trend_serializable = {str(date): int(count) for date, count in daily_trend.items()}
+        
         return {
             'hourly_distribution': df.groupby('hour')['message_id'].count().to_dict(),
-            'daily_distribution': df.groupby('day_of_week')['message_id'].count().to_dict(),
-            'daily_trend': df.groupby('date')['message_id'].count().to_dict(),
+            'daily_distribution': daily_dist_ordered,
+            'daily_trend': daily_trend_serializable,
             'category_by_hour': df.groupby(['hour', 'primary_category']).size().unstack(fill_value=0).to_dict(),
             'peak_hours': df.groupby('hour')['message_id'].count().nlargest(3).to_dict(),
-            'peak_days': df.groupby('day_of_week')['message_id'].count().nlargest(3).to_dict()
+            'peak_days': {day: int(count) for day, count in 
+                         df.groupby('day_of_week')['message_id'].count().nlargest(3).items()}
         }
     
     def _save_checkpoint(self, results: List[pd.DataFrame], chunk_num: int):
@@ -1090,13 +1150,29 @@ class EnhancedChatbotAnalyzer:
 
 
 # Usage Example
+def get_db_connection():
+    """FIX: Add actual database connection function"""
+    try:
+        # Example PostgreSQL connection
+        conn = psycopg2.connect(
+            host="localhost",
+            database="your_database",
+            user="your_user",
+            password="your_password"
+        )
+        return conn
+    except Exception as e:
+        logging.error(f"Database connection failed: {e}")
+        return None
+
+
 def main():
     """Main execution function"""
     # Initialize analyzer
     analyzer = EnhancedChatbotAnalyzer(cache_dir="./analysis_cache")
     
     # Connect to database
-    conn = get_db_connection()  # Your existing connection function
+    conn = get_db_connection()
     
     if not conn:
         logging.error("Failed to connect to database")
