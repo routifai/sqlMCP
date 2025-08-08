@@ -11,8 +11,6 @@ import hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import pickle
 from pathlib import Path
-from difflib import SequenceMatcher
-import Levenshtein
 
 # Configure logging
 logging.basicConfig(
@@ -31,8 +29,6 @@ class CategoryConfig:
     patterns: List[Tuple[str, float]]  # (regex_pattern, weight)
     min_score: float = 0.3  # minimum score to classify into this category
     priority: int = 1  # higher priority categories are checked first
-    fuzzy_threshold: float = 0.8  # minimum similarity for fuzzy matching
-    fuzzy_weight_multiplier: float = 0.7  # weight multiplier for fuzzy matches
 
 class EnhancedChatbotAnalyzer:
     def __init__(self, cache_dir: str = "./cache"):
@@ -42,7 +38,6 @@ class EnhancedChatbotAnalyzer:
         self.compiled_patterns = self._compile_patterns()
         self.session_cache = {}
         self.keyword_stats = defaultdict(int)
-        self.fuzzy_cache = {}  # Cache for fuzzy matching results
         
     def _initialize_categories(self) -> Dict[str, CategoryConfig]:
         """Initialize categories with weighted keywords and patterns"""
@@ -310,68 +305,20 @@ class EnhancedChatbotAnalyzer:
             ]
         return compiled
     
-    def _fuzzy_match_keyword(self, text: str, keyword: str, threshold: float = 0.8) -> Tuple[bool, float]:
-        """Check if a keyword fuzzy matches in text using multiple algorithms"""
-        text_lower = text.lower()
-        keyword_lower = keyword.lower()
-        
-        # Check for exact match first (fastest)
-        if keyword_lower in text_lower:
-            return True, 1.0
-        
-        # Check for word boundary matches
-        words = text_lower.split()
-        for word in words:
-            # Levenshtein distance for word-level matching
-            if len(word) >= 3:  # Only check words with 3+ characters
-                distance = Levenshtein.distance(word, keyword_lower)
-                max_len = max(len(word), len(keyword_lower))
-                similarity = 1 - (distance / max_len)
-                
-                if similarity >= threshold:
-                    return True, similarity
-        
-        # Check for substring similarity using SequenceMatcher
-        for word in words:
-            if len(word) >= 3:
-                matcher = SequenceMatcher(None, word, keyword_lower)
-                similarity = matcher.ratio()
-                
-                if similarity >= threshold:
-                    return True, similarity
-        
-        # Check for partial matches (e.g., "docker" in "docker-compose")
-        if keyword_lower in text_lower.replace('-', ' ').replace('_', ' '):
-            return True, 0.9
-        
-        return False, 0.0
-    
     def calculate_category_score(self, text: str, category_name: str) -> float:
-        """Calculate weighted score for a category based on text with fuzzy matching"""
+        """Calculate weighted score for a category based on text"""
         text_lower = text.lower()
         score = 0.0
         matched_keywords = []
-        fuzzy_matches = []
         
         category = self.categories[category_name]
         
-        # Check keywords with exact and fuzzy matching
+        # Check keywords with weights
         for keyword, weight in category.keywords.items():
-            # Exact match
             if keyword in text_lower:
                 score += weight
                 matched_keywords.append(keyword)
                 self.keyword_stats[keyword] += 1
-            else:
-                # Fuzzy match
-                is_match, similarity = self._fuzzy_match_keyword(
-                    text, keyword, category.fuzzy_threshold
-                )
-                if is_match:
-                    fuzzy_weight = weight * category.fuzzy_weight_multiplier * similarity
-                    score += fuzzy_weight
-                    fuzzy_matches.append(f"{keyword} (fuzzy: {similarity:.2f})")
-                    self.keyword_stats[f"{keyword}_fuzzy"] += 1
         
         # Check regex patterns
         for pattern, weight in self.compiled_patterns[category_name]:
@@ -385,22 +332,15 @@ class EnhancedChatbotAnalyzer:
         
         return score
     
-    def classify_message(self, text: str) -> Tuple[str, float, List[str], Dict[str, List[str]]]:
-        """Classify a message into categories with confidence score and match details"""
+    def classify_message(self, text: str) -> Tuple[str, float, List[str]]:
+        """Classify a message into categories with confidence score"""
         if not text or len(text.strip()) < 3:
-            return "Uncategorized", 0.0, [], {}
+            return "Uncategorized", 0.0, []
         
         # Calculate scores for all categories
         scores = {}
-        match_details = {}
-        
         for cat_name in self.categories:
-            score, exact_matches, fuzzy_matches = self._calculate_category_score_with_details(text, cat_name)
-            scores[cat_name] = score
-            match_details[cat_name] = {
-                'exact_matches': exact_matches,
-                'fuzzy_matches': fuzzy_matches
-            }
+            scores[cat_name] = self.calculate_category_score(text, cat_name)
         
         # Sort categories by priority and score
         sorted_categories = sorted(
@@ -413,7 +353,7 @@ class EnhancedChatbotAnalyzer:
         
         # Check if score meets minimum threshold
         if best_score < self.categories[best_category].min_score:
-            return "Uncategorized", best_score, [], match_details
+            return "Uncategorized", best_score, []
         
         # Get secondary categories (multi-label classification)
         secondary_categories = []
@@ -421,46 +361,7 @@ class EnhancedChatbotAnalyzer:
             if score >= self.categories[cat].min_score * 0.7:  # 70% of min threshold
                 secondary_categories.append(cat)
         
-        return best_category, best_score, secondary_categories, match_details
-    
-    def _calculate_category_score_with_details(self, text: str, category_name: str) -> Tuple[float, List[str], List[str]]:
-        """Calculate category score with detailed match information"""
-        text_lower = text.lower()
-        score = 0.0
-        exact_matches = []
-        fuzzy_matches = []
-        
-        category = self.categories[category_name]
-        
-        # Check keywords with exact and fuzzy matching
-        for keyword, weight in category.keywords.items():
-            # Exact match
-            if keyword in text_lower:
-                score += weight
-                exact_matches.append(keyword)
-                self.keyword_stats[keyword] += 1
-            else:
-                # Fuzzy match
-                is_match, similarity = self._fuzzy_match_keyword(
-                    text, keyword, category.fuzzy_threshold
-                )
-                if is_match:
-                    fuzzy_weight = weight * category.fuzzy_weight_multiplier * similarity
-                    score += fuzzy_weight
-                    fuzzy_matches.append(f"{keyword} (similarity: {similarity:.2f})")
-                    self.keyword_stats[f"{keyword}_fuzzy"] += 1
-        
-        # Check regex patterns
-        for pattern, weight in self.compiled_patterns[category_name]:
-            if pattern.search(text):
-                score += weight
-        
-        # Apply length normalization (longer texts shouldn't automatically score higher)
-        text_length = len(text.split())
-        if text_length > 0:
-            score = score / np.log(max(text_length, 10))
-        
-        return score, exact_matches, fuzzy_matches
+        return best_category, best_score, secondary_categories
     
     def analyze_session_patterns(self, df: pd.DataFrame) -> Dict:
         """Analyze user session patterns"""
@@ -611,7 +512,7 @@ class EnhancedChatbotAnalyzer:
             # Classify messages
             classifications = []
             for _, row in chunk.iterrows():
-                primary_cat, confidence, secondary_cats, match_details = self.classify_message(row['input'])
+                primary_cat, confidence, secondary_cats = self.classify_message(row['input'])
                 classifications.append({
                     'session_id': row['session_id'],
                     'message_id': row['message_id'],
@@ -619,8 +520,7 @@ class EnhancedChatbotAnalyzer:
                     'input': row['input'],
                     'primary_category': primary_cat,
                     'confidence_score': confidence,
-                    'secondary_categories': secondary_cats,
-                    'match_details': match_details
+                    'secondary_categories': secondary_cats
                 })
             
             chunk_df = pd.DataFrame(classifications)
@@ -648,8 +548,7 @@ class EnhancedChatbotAnalyzer:
             'emerging_topics': self.detect_emerging_topics(df_results),
             'time_analysis': self._analyze_temporal_patterns(df_results),
             'insights': self.generate_insights(df_results),
-            'keyword_statistics': dict(Counter(self.keyword_stats).most_common(50)),
-            'fuzzy_match_analysis': self._analyze_fuzzy_matches(df_results)
+            'keyword_statistics': dict(Counter(self.keyword_stats).most_common(50))
         }
         
         # Save detailed results
@@ -675,59 +574,18 @@ class EnhancedChatbotAnalyzer:
         
         return distribution
     
-    def _analyze_fuzzy_matches(self, df: pd.DataFrame) -> Dict:
-        """Analyze fuzzy matching performance and patterns"""
-        fuzzy_stats = {
-            'total_fuzzy_matches': 0,
-            'fuzzy_match_rate': 0.0,
-            'top_fuzzy_keywords': [],
-            'fuzzy_match_by_category': {},
-            'improvement_opportunities': []
+    def get_performance_stats(self) -> Dict:
+        """Get performance statistics for the analyzer"""
+        return {
+            'cache_size': len(self.fuzzy_cache),
+            'keyword_stats': dict(self.keyword_stats),
+            'categories_processed': len(self.categories),
+            'total_keywords': sum(len(cat.keywords) for cat in self.categories.values()),
+            'fuzzy_match_rate': (
+                sum(1 for k, v in self.keyword_stats.items() if k.endswith('_fuzzy')) /
+                max(sum(1 for k, v in self.keyword_stats.items() if not k.endswith('_fuzzy')), 1)
+            ) * 100
         }
-        
-        total_messages = len(df)
-        fuzzy_matches_by_category = defaultdict(int)
-        fuzzy_keyword_counts = defaultdict(int)
-        
-        for _, row in df.iterrows():
-            match_details = row.get('match_details', {})
-            for category, details in match_details.items():
-                fuzzy_matches = details.get('fuzzy_matches', [])
-                if fuzzy_matches:
-                    fuzzy_stats['total_fuzzy_matches'] += len(fuzzy_matches)
-                    fuzzy_matches_by_category[category] += len(fuzzy_matches)
-                    
-                    # Extract keywords from fuzzy matches
-                    for match in fuzzy_matches:
-                        keyword = match.split(' (similarity:')[0]
-                        fuzzy_keyword_counts[keyword] += 1
-        
-        # Calculate fuzzy match rate
-        if total_messages > 0:
-            fuzzy_stats['fuzzy_match_rate'] = (fuzzy_stats['total_fuzzy_matches'] / total_messages) * 100
-        
-        # Top fuzzy keywords
-        fuzzy_stats['top_fuzzy_keywords'] = [
-            {'keyword': kw, 'count': count} 
-            for kw, count in sorted(fuzzy_keyword_counts.items(), key=lambda x: x[1], reverse=True)[:20]
-        ]
-        
-        # Fuzzy matches by category
-        fuzzy_stats['fuzzy_match_by_category'] = dict(fuzzy_matches_by_category)
-        
-        # Identify improvement opportunities
-        high_fuzzy_categories = [
-            cat for cat, count in fuzzy_matches_by_category.items() 
-            if count > 10  # Categories with many fuzzy matches
-        ]
-        
-        for category in high_fuzzy_categories:
-            fuzzy_stats['improvement_opportunities'].append(
-                f"Category '{category}' has many fuzzy matches. Consider adding common variations "
-                f"or adjusting fuzzy threshold for better accuracy."
-            )
-        
-        return fuzzy_stats
     
     def _calculate_tech_vs_business_split(self, df: pd.DataFrame) -> Dict:
         """Calculate technical vs business split"""
@@ -884,31 +742,6 @@ class EnhancedChatbotAnalyzer:
                 
                 <h2>📈 Trending Topics</h2>
                 {trending_html}
-                
-                <h2>🔍 Fuzzy Match Analysis</h2>
-                <div class="metric-grid">
-                    <div class="metric-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                        <div class="metric-value">{fuzzy_match_rate:.1f}%</div>
-                        <div class="metric-label">Fuzzy Match Rate</div>
-                    </div>
-                    <div class="metric-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
-                        <div class="metric-value">{total_fuzzy_matches:,}</div>
-                        <div class="metric-label">Total Fuzzy Matches</div>
-                    </div>
-                </div>
-                
-                <h3>Top Fuzzy Keywords</h3>
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Keyword</th>
-                            <th>Fuzzy Match Count</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {fuzzy_keywords_rows}
-                    </tbody>
-                </table>
             </div>
             
             <script>
@@ -949,21 +782,6 @@ class EnhancedChatbotAnalyzer:
             trending_html += f"<li><strong>{topic['keyword']}</strong> - {topic['growth_rate']:.1%} growth</li>"
         trending_html += "</ul>"
         
-        # Fuzzy match analysis
-        fuzzy_analysis = results.get('fuzzy_match_analysis', {})
-        fuzzy_match_rate = fuzzy_analysis.get('fuzzy_match_rate', 0)
-        total_fuzzy_matches = fuzzy_analysis.get('total_fuzzy_matches', 0)
-        
-        # Prepare fuzzy keywords rows
-        fuzzy_keywords_rows = ""
-        for item in fuzzy_analysis.get('top_fuzzy_keywords', [])[:10]:
-            fuzzy_keywords_rows += f"""
-                <tr>
-                    <td>{item['keyword']}</td>
-                    <td>{item['count']:,}</td>
-                </tr>
-            """
-        
         # Generate JavaScript for charts
         charts_js = self._generate_charts_javascript(results)
         
@@ -978,9 +796,6 @@ class EnhancedChatbotAnalyzer:
             insights_html=insights_html,
             alerts_html=alerts_html,
             trending_html=trending_html,
-            fuzzy_match_rate=fuzzy_match_rate,
-            total_fuzzy_matches=total_fuzzy_matches,
-            fuzzy_keywords_rows=fuzzy_keywords_rows,
             charts_javascript=charts_js
         )
     
@@ -1098,8 +913,7 @@ class EnhancedChatbotAnalyzer:
 2. **Focus on High-Volume Categories**: Provide specialized resources and documentation for top categories
 3. **Monitor Trending Topics**: Stay ahead of emerging needs by tracking trending keywords
 4. **Optimize for Peak Usage**: Review temporal patterns to ensure chatbot availability during peak hours
-5. **Analyze Fuzzy Matches**: Review fuzzy match patterns to improve keyword definitions and thresholds
-6. **Regular Analysis**: Schedule monthly analysis to track usage evolution and identify new patterns
+5. **Regular Analysis**: Schedule monthly analysis to track usage evolution and identify new patterns
 
 ---
 *This report provides data-driven insights into chatbot usage patterns. For detailed analysis, refer to the full HTML report.*
