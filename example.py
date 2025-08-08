@@ -48,24 +48,44 @@ class EnhancedChatbotAnalyzer:
                     # CI/CD & Automation
                     "jenkins": 2.0, "ci/cd": 2.5, "pipeline": 1.8, "github actions": 2.2,
                     "gitlab ci": 2.0, "circleci": 2.0, "travis": 1.8, "bamboo": 1.8,
+                    "teamcity": 2.0, "azure devops": 2.2, "bitbucket pipelines": 2.0,
+                    "build": 1.5, "deploy": 1.8, "deployment": 2.0, "release": 1.5,
+                    "automation": 2.0, "continuous integration": 2.5, "continuous deployment": 2.5,
                     
                     # Containerization & Orchestration
                     "docker": 2.5, "kubernetes": 2.5, "k8s": 2.5, "container": 1.5,
                     "helm": 2.0, "istio": 2.0, "openshift": 2.0, "rancher": 1.8,
-                    "podman": 1.8, "containerd": 1.8, "docker-compose": 2.0,
+                    "podman": 1.8, "containerd": 1.8, "docker-compose": 2.0, "dockerfile": 2.0,
+                    "containerization": 2.0, "orchestration": 2.0, "microservices": 2.0,
+                    "service mesh": 2.0, "ingress": 1.8, "namespace": 1.8, "pod": 1.8,
+                    "deployment": 2.0, "service": 1.5, "configmap": 1.8, "secret": 1.8,
                     
                     # IaC & Configuration
                     "terraform": 2.5, "ansible": 2.5, "puppet": 2.0, "chef": 2.0,
                     "pulumi": 2.0, "cloudformation": 2.2, "arm template": 2.0,
+                    "infrastructure as code": 2.5, "iac": 2.0, "provisioning": 2.0,
+                    "configuration management": 2.0, "state management": 1.8,
                     
                     # Cloud Platforms
                     "aws": 2.0, "azure": 2.0, "gcp": 2.0, "google cloud": 2.0,
                     "ec2": 2.0, "s3": 1.8, "lambda": 1.8, "eks": 2.0, "aks": 2.0,
+                    "ecs": 2.0, "fargate": 2.0, "vpc": 1.8, "subnet": 1.8,
+                    "route53": 1.8, "cloudfront": 1.8, "rds": 1.8, "dynamodb": 2.0,
+                    "cloud storage": 1.8, "compute": 1.5, "serverless": 2.0,
                     
                     # Monitoring & Logging
                     "prometheus": 2.0, "grafana": 2.0, "elk": 2.0, "elasticsearch": 2.0,
                     "logstash": 1.8, "kibana": 1.8, "datadog": 2.0, "new relic": 2.0,
                     "splunk": 2.0, "cloudwatch": 1.8, "stackdriver": 1.8,
+                    "monitoring": 2.0, "logging": 2.0, "alerting": 1.8, "metrics": 1.8,
+                    "dashboard": 1.8, "observability": 2.0, "tracing": 1.8,
+                    "jaeger": 1.8, "zipkin": 1.8, "opentelemetry": 2.0,
+                    
+                    # Networking & Security
+                    "vpc": 1.8, "subnet": 1.8, "security group": 1.8, "firewall": 1.8,
+                    "load balancer": 1.8, "alb": 1.8, "nlb": 1.8, "elb": 1.8,
+                    "ssl": 1.8, "tls": 1.8, "certificate": 1.8, "vpn": 1.8,
+                    "bastion": 1.8, "jump server": 1.8, "nat gateway": 1.8,
                 },
                 patterns=[
                     (r'\b(?:deploy|deployment)\s+(?:to|on|in)\s+(?:prod|production|staging)\b', 2.0),
@@ -73,6 +93,15 @@ class EnhancedChatbotAnalyzer:
                     (r'\b(?:load\s*balanc(?:er|ing)|lb|alb|nlb|elb)\b', 1.8),
                     (r'\b(?:infra|infrastructure)\s+as\s+code\b', 2.5),
                     (r'\b(?:micro)?services?\s+(?:architecture|deployment)\b', 2.0),
+                    (r'\b(?:container|docker|kubernetes)\s+(?:orchestration|management)\b', 2.0),
+                    (r'\b(?:cloud|aws|azure|gcp)\s+(?:infrastructure|setup|configuration)\b', 2.0),
+                    (r'\b(?:monitoring|logging|observability)\s+(?:setup|configuration)\b', 2.0),
+                    (r'\b(?:ci/cd|continuous\s+integration|continuous\s+deployment)\s+(?:pipeline|setup)\b', 2.5),
+                    (r'\b(?:terraform|ansible|puppet|chef)\s+(?:configuration|deployment)\b', 2.0),
+                    (r'\b(?:kubernetes|k8s)\s+(?:cluster|deployment|service)\b', 2.0),
+                    (r'\b(?:docker|container)\s+(?:build|image|registry)\b', 2.0),
+                    (r'\b(?:aws|azure|gcp)\s+(?:service|resource|instance)\b', 2.0),
+                    (r'\b(?:prometheus|grafana|elk|datadog)\s+(?:monitoring|dashboard)\b', 2.0),
                 ],
                 min_score=0.5,
                 priority=1
@@ -83,23 +112,55 @@ class EnhancedChatbotAnalyzer:
                     # Languages
                     "python": 1.5, "java": 1.5, "c#": 1.5, "golang": 2.0, "go": 1.2,
                     "rust": 2.0, "scala": 1.8, "kotlin": 1.8, "php": 1.2, "ruby": 1.5,
+                    "node.js": 2.0, "typescript": 2.0, "javascript": 1.5, "c++": 1.8,
+                    "c": 1.5, "swift": 1.8, "objective-c": 1.8, "perl": 1.2,
                     
                     # Frameworks
                     "spring": 2.0, "django": 2.0, "flask": 1.8, "fastapi": 2.0,
                     "express": 1.8, "nestjs": 2.0, "rails": 1.8, "laravel": 1.8,
                     ".net": 2.0, "asp.net": 2.0, "gin": 1.8, "echo": 1.8,
+                    "koa": 1.8, "hapi": 1.8, "adonis": 1.8, "strapi": 2.0,
+                    "symfony": 1.8, "codeigniter": 1.8, "yii": 1.8, "phalcon": 1.8,
                     
                     # API & Backend Concepts
                     "rest api": 2.0, "graphql": 2.2, "grpc": 2.2, "websocket": 2.0,
                     "microservice": 2.0, "serverless": 2.0, "crud": 1.5,
                     "authentication": 1.8, "authorization": 1.8, "jwt": 2.0,
                     "oauth": 2.0, "middleware": 1.8, "orm": 1.8,
+                    "api": 2.0, "endpoint": 1.8, "service": 1.5, "controller": 1.8,
+                    "repository": 1.8, "model": 1.5, "entity": 1.8, "dto": 1.8,
+                    "validation": 1.8, "serialization": 1.8, "deserialization": 1.8,
+                    "rate limiting": 1.8, "caching": 1.8, "session": 1.5,
+                    
+                    # Database & Data
+                    "database": 1.8, "sql": 1.5, "nosql": 1.8, "postgresql": 2.0,
+                    "mysql": 1.8, "mongodb": 2.0, "redis": 2.0, "elasticsearch": 2.0,
+                    "cassandra": 2.0, "dynamodb": 2.0, "firebase": 2.0, "supabase": 2.0,
+                    "migration": 1.8, "schema": 1.8, "index": 1.8, "query": 1.5,
+                    "transaction": 1.8, "connection pool": 1.8, "connection": 1.5,
+                    
+                    # Architecture & Patterns
+                    "mvc": 1.8, "mvvm": 1.8, "repository pattern": 2.0, "factory pattern": 1.8,
+                    "singleton": 1.8, "dependency injection": 2.0, "inversion of control": 2.0,
+                    "clean architecture": 2.0, "hexagonal architecture": 2.0, "ddd": 2.0,
+                    "event sourcing": 2.0, "cqrs": 2.0, "saga pattern": 2.0,
                 },
                 patterns=[
                     (r'\bapi\s+(?:endpoint|design|development|integration)\b', 2.0),
                     (r'\b(?:rest|restful)\s+(?:api|service|endpoint)\b', 2.0),
                     (r'\b(?:backend|back-end|server-side)\s+(?:code|logic|development)\b', 2.0),
                     (r'\b(?:database|db)\s+(?:query|connection|pool|optimization)\b', 1.8),
+                    (r'\b(?:api|service)\s+(?:design|development|implementation)\b', 2.0),
+                    (r'\b(?:authentication|authorization)\s+(?:system|mechanism|flow)\b', 2.0),
+                    (r'\b(?:database|db)\s+(?:migration|schema|index)\b', 1.8),
+                    (r'\b(?:microservice|service)\s+(?:architecture|design|deployment)\b', 2.0),
+                    (r'\b(?:graphql|grpc)\s+(?:api|service|endpoint)\b', 2.2),
+                    (r'\b(?:orm|object\s+relational\s+mapping)\s+(?:setup|configuration)\b', 1.8),
+                    (r'\b(?:jwt|oauth)\s+(?:token|authentication|authorization)\b', 2.0),
+                    (r'\b(?:websocket|real-time)\s+(?:communication|connection)\b', 2.0),
+                    (r'\b(?:repository|factory|singleton)\s+pattern\b', 1.8),
+                    (r'\b(?:clean|hexagonal)\s+architecture\b', 2.0),
+                    (r'\b(?:event\s+sourcing|cqrs|saga)\s+pattern\b', 2.0),
                 ],
                 min_score=0.5,
                 priority=1
@@ -111,22 +172,56 @@ class EnhancedChatbotAnalyzer:
                     "react": 2.5, "angular": 2.5, "vue": 2.5, "svelte": 2.2,
                     "nextjs": 2.5, "next.js": 2.5, "nuxt": 2.2, "gatsby": 2.0,
                     "webpack": 1.8, "vite": 2.0, "parcel": 1.8, "rollup": 1.8,
+                    "remix": 2.2, "astro": 2.0, "solid": 2.2, "preact": 2.0,
+                    "ember": 1.8, "backbone": 1.5, "jquery": 1.2, "lodash": 1.5,
                     
                     # Web Technologies
                     "javascript": 1.5, "typescript": 2.0, "html": 1.0, "css": 1.0,
                     "sass": 1.5, "scss": 1.5, "tailwind": 2.0, "bootstrap": 1.5,
-                    "material-ui": 1.8, "mui": 1.8, "chakra": 1.8,
+                    "material-ui": 1.8, "mui": 1.8, "chakra": 1.8, "ant design": 1.8,
+                    "styled-components": 2.0, "emotion": 1.8, "framer motion": 2.0,
+                    "three.js": 2.0, "d3.js": 2.0, "chart.js": 1.8, "canvas": 1.5,
+                    "webgl": 2.0, "webassembly": 2.0, "wasm": 2.0,
                     
                     # Frontend Concepts
                     "responsive": 1.5, "spa": 2.0, "pwa": 2.0, "ssr": 2.0,
                     "state management": 2.0, "redux": 2.0, "mobx": 1.8,
                     "zustand": 1.8, "recoil": 1.8, "context api": 1.8,
+                    "component": 1.5, "hook": 1.8, "lifecycle": 1.8, "routing": 1.8,
+                    "virtual dom": 2.0, "reconciliation": 1.8, "hydration": 1.8,
+                    "code splitting": 2.0, "lazy loading": 1.8, "tree shaking": 1.8,
+                    
+                    # UI/UX & Design
+                    "ui": 1.5, "ux": 1.5, "user interface": 1.8, "user experience": 1.8,
+                    "design system": 2.0, "component library": 2.0, "design tokens": 1.8,
+                    "accessibility": 1.8, "a11y": 1.8, "semantic": 1.5, "aria": 1.8,
+                    "responsive design": 2.0, "mobile first": 1.8, "progressive enhancement": 1.8,
+                    
+                    # Performance & Optimization
+                    "performance": 1.8, "optimization": 1.8, "bundle size": 1.8,
+                    "lighthouse": 1.8, "core web vitals": 2.0, "lcp": 1.8, "fid": 1.8,
+                    "cls": 1.8, "caching": 1.5, "cdn": 1.8, "minification": 1.5,
+                    
+                    # Testing & Tools
+                    "jest": 2.0, "cypress": 2.2, "playwright": 2.0, "selenium": 1.8,
+                    "storybook": 2.0, "chromatic": 1.8, "testing library": 1.8,
+                    "eslint": 1.5, "prettier": 1.5, "husky": 1.8, "lint-staged": 1.8,
                 },
                 patterns=[
                     (r'\b(?:front-?end|frontend|client-?side)\s+(?:development|code|framework)\b', 2.0),
                     (r'\b(?:ui|ux|user\s+interface)\s+(?:design|development|component)\b', 1.8),
                     (r'\bcomponent\s+(?:library|design|development)\b', 1.5),
                     (r'\b(?:web|mobile)\s+app(?:lication)?\s+development\b', 1.8),
+                    (r'\b(?:react|angular|vue|svelte)\s+(?:component|hook|lifecycle)\b', 2.0),
+                    (r'\b(?:responsive|mobile)\s+(?:design|layout|development)\b', 1.8),
+                    (r'\b(?:state|redux|mobx)\s+(?:management|store|action)\b', 2.0),
+                    (r'\b(?:css|scss|sass|styled)\s+(?:component|module|framework)\b', 1.8),
+                    (r'\b(?:webpack|vite|parcel)\s+(?:configuration|build|bundle)\b', 1.8),
+                    (r'\b(?:performance|optimization)\s+(?:frontend|web|app)\b', 1.8),
+                    (r'\b(?:accessibility|a11y)\s+(?:compliance|testing|implementation)\b', 1.8),
+                    (r'\b(?:pwa|progressive\s+web\s+app)\s+(?:development|implementation)\b', 2.0),
+                    (r'\b(?:ssr|server\s+side\s+rendering)\s+(?:setup|configuration)\b', 2.0),
+                    (r'\b(?:testing|jest|cypress)\s+(?:frontend|component|unit)\b', 2.0),
                 ],
                 min_score=0.5,
                 priority=1
@@ -139,21 +234,54 @@ class EnhancedChatbotAnalyzer:
                     "flink": 2.2, "beam": 2.0, "etl": 2.0, "elt": 2.0,
                     "databricks": 2.5, "snowflake": 2.5, "redshift": 2.2,
                     "bigquery": 2.2, "athena": 2.0, "presto": 2.0, "trino": 2.0,
+                    "data processing": 2.0, "data transformation": 2.0, "data ingestion": 2.0,
+                    "stream processing": 2.0, "batch processing": 2.0, "real-time processing": 2.0,
                     
                     # Databases
                     "sql": 1.5, "nosql": 1.8, "postgresql": 2.0, "mysql": 1.8,
                     "mongodb": 2.0, "cassandra": 2.0, "redis": 2.0, "elasticsearch": 2.2,
                     "dynamodb": 2.0, "cosmos db": 2.0, "neo4j": 2.0,
+                    "database": 1.8, "rdbms": 1.8, "data warehouse": 2.0, "data lake": 2.0,
+                    "data mart": 1.8, "data mesh": 2.0, "data fabric": 2.0,
                     
                     # Analytics & BI
                     "tableau": 2.0, "power bi": 2.0, "looker": 2.0, "metabase": 1.8,
                     "superset": 1.8, "quicksight": 1.8, "data pipeline": 2.0,
+                    "analytics": 1.8, "business intelligence": 2.0, "bi": 1.5,
+                    "dashboard": 1.8, "reporting": 1.8, "data visualization": 2.0,
+                    "kpi": 1.8, "metrics": 1.5, "measurement": 1.5,
+                    
+                    # Data Science Tools
+                    "pandas": 2.0, "numpy": 1.8, "jupyter": 1.8, "matplotlib": 1.5,
+                    "seaborn": 1.5, "plotly": 1.8, "streamlit": 2.0, "gradio": 2.0,
+                    "r": 1.8, "rstudio": 1.8, "sas": 1.8, "spss": 1.8,
+                    
+                    # Data Quality & Governance
+                    "data quality": 2.0, "data governance": 2.0, "data lineage": 1.8,
+                    "data catalog": 1.8, "data dictionary": 1.8, "metadata": 1.8,
+                    "data validation": 1.8, "data profiling": 1.8, "data cleansing": 1.8,
+                    
+                    # Big Data & Cloud
+                    "big data": 2.0, "distributed computing": 2.0, "mapreduce": 1.8,
+                    "hive": 1.8, "hbase": 1.8, "zookeeper": 1.8, "yarn": 1.8,
+                    "cloud data": 1.8, "data lakehouse": 2.0, "delta lake": 2.0,
+                    "iceberg": 1.8, "hudi": 1.8,
                 },
                 patterns=[
                     (r'\bdata\s+(?:pipeline|warehouse|lake|mart|mesh)\b', 2.2),
                     (r'\b(?:batch|stream|real-?time)\s+processing\b', 2.0),
                     (r'\b(?:data|database)\s+(?:migration|replication|sync)\b', 1.8),
                     (r'\bquery\s+(?:optimization|performance|tuning)\b', 2.0),
+                    (r'\b(?:etl|elt)\s+(?:pipeline|process|workflow)\b', 2.0),
+                    (r'\b(?:spark|hadoop|kafka)\s+(?:configuration|setup|deployment)\b', 2.0),
+                    (r'\b(?:data|analytics)\s+(?:platform|tool|solution)\b', 2.0),
+                    (r'\b(?:business\s+intelligence|bi)\s+(?:dashboard|report|analysis)\b', 2.0),
+                    (r'\b(?:data\s+quality|governance)\s+(?:management|framework)\b', 2.0),
+                    (r'\b(?:big\s+data|distributed)\s+(?:processing|computing)\b', 2.0),
+                    (r'\b(?:data\s+visualization|dashboard)\s+(?:creation|design)\b', 1.8),
+                    (r'\b(?:sql|query)\s+(?:optimization|performance|tuning)\b', 2.0),
+                    (r'\b(?:data\s+warehouse|lake)\s+(?:design|architecture)\b', 2.0),
+                    (r'\b(?:stream|batch)\s+(?:processing|ingestion|transformation)\b', 2.0),
                 ],
                 min_score=0.5,
                 priority=1
@@ -164,25 +292,64 @@ class EnhancedChatbotAnalyzer:
                     # ML Frameworks
                     "tensorflow": 2.5, "pytorch": 2.5, "scikit-learn": 2.2, "sklearn": 2.2,
                     "keras": 2.0, "xgboost": 2.0, "lightgbm": 2.0, "catboost": 2.0,
+                    "hugging face": 2.5, "transformers": 2.5, "spacy": 2.0, "nltk": 1.8,
+                    "opencv": 2.0, "pillow": 1.5, "scipy": 1.8, "statsmodels": 1.8,
                     
                     # ML Concepts
                     "machine learning": 2.5, "deep learning": 2.5, "neural network": 2.5,
                     "nlp": 2.2, "computer vision": 2.2, "reinforcement learning": 2.2,
                     "transformer": 2.0, "bert": 2.0, "gpt": 2.0, "llm": 2.5,
+                    "supervised learning": 2.0, "unsupervised learning": 2.0, "semi-supervised": 2.0,
+                    "transfer learning": 2.0, "ensemble": 1.8, "gradient boosting": 2.0,
+                    "random forest": 1.8, "svm": 1.8, "k-means": 1.8, "clustering": 1.8,
+                    
+                    # AI/ML Applications
+                    "natural language processing": 2.2, "computer vision": 2.2, "speech recognition": 2.0,
+                    "recommendation system": 2.0, "chatbot": 2.0, "virtual assistant": 2.0,
+                    "autonomous vehicle": 2.0, "robotics": 2.0, "expert system": 1.8,
+                    "knowledge graph": 2.0, "semantic analysis": 2.0, "sentiment analysis": 2.0,
                     
                     # Data Science Tools
                     "pandas": 2.0, "numpy": 1.8, "jupyter": 1.8, "matplotlib": 1.5,
                     "seaborn": 1.5, "plotly": 1.8, "streamlit": 2.0, "gradio": 2.0,
+                    "r": 1.8, "rstudio": 1.8, "sas": 1.8, "spss": 1.8,
+                    "weka": 1.8, "rapidminer": 1.8, "knime": 1.8,
                     
                     # MLOps
                     "mlflow": 2.2, "kubeflow": 2.2, "sagemaker": 2.2, "vertex ai": 2.2,
-                    "wandb": 2.0, "dvc": 2.0, "feast": 2.0,
+                    "wandb": 2.0, "dvc": 2.0, "feast": 2.0, "mlops": 2.0,
+                    "model serving": 2.0, "model deployment": 2.0, "model monitoring": 2.0,
+                    "feature store": 2.0, "model registry": 2.0, "experiment tracking": 2.0,
+                    
+                    # Advanced ML
+                    "generative ai": 2.5, "large language model": 2.5, "foundation model": 2.5,
+                    "multimodal": 2.0, "computer vision": 2.2, "object detection": 2.0,
+                    "image classification": 2.0, "semantic segmentation": 2.0, "instance segmentation": 2.0,
+                    "time series": 1.8, "forecasting": 1.8, "anomaly detection": 2.0,
+                    "reinforcement learning": 2.2, "q-learning": 2.0, "policy gradient": 2.0,
+                    
+                    # Data Science Process
+                    "data science": 2.0, "statistical analysis": 1.8, "hypothesis testing": 1.8,
+                    "a/b testing": 1.8, "experiment design": 1.8, "feature engineering": 2.0,
+                    "data preprocessing": 1.8, "data cleaning": 1.8, "data wrangling": 1.8,
+                    "exploratory data analysis": 2.0, "eda": 1.8, "data visualization": 1.8,
                 },
                 patterns=[
                     (r'\b(?:train|training|fine-?tun(?:e|ing))\s+(?:a\s+)?model\b', 2.2),
                     (r'\b(?:model|algorithm)\s+(?:deployment|serving|inference)\b', 2.0),
                     (r'\b(?:feature|data)\s+engineering\b', 2.0),
                     (r'\b(?:classification|regression|clustering|prediction)\s+(?:model|algorithm)\b', 2.0),
+                    (r'\b(?:machine\s+learning|deep\s+learning)\s+(?:model|algorithm|system)\b', 2.5),
+                    (r'\b(?:natural\s+language\s+processing|nlp)\s+(?:model|system|application)\b', 2.2),
+                    (r'\b(?:computer\s+vision|image\s+processing)\s+(?:model|system|application)\b', 2.2),
+                    (r'\b(?:data\s+science|ml|ai)\s+(?:project|experiment|analysis)\b', 2.0),
+                    (r'\b(?:model|algorithm)\s+(?:evaluation|validation|testing)\b', 2.0),
+                    (r'\b(?:feature|data)\s+(?:selection|extraction|transformation)\b', 2.0),
+                    (r'\b(?:mlops|machine\s+learning\s+operations)\s+(?:pipeline|workflow)\b', 2.0),
+                    (r'\b(?:experiment|trial)\s+(?:tracking|management|monitoring)\b', 1.8),
+                    (r'\b(?:generative\s+ai|llm|large\s+language\s+model)\s+(?:development|deployment)\b', 2.5),
+                    (r'\b(?:reinforcement\s+learning|rl)\s+(?:agent|environment|policy)\b', 2.2),
+                    (r'\b(?:time\s+series|forecasting)\s+(?:analysis|prediction|model)\b', 1.8),
                 ],
                 min_score=0.5,
                 priority=1
