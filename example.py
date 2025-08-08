@@ -900,21 +900,21 @@ class EnhancedChatbotAnalyzer:
             <title>Chatbot Usage Analysis Report</title>
             <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
             <style>
-                body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
-                .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }
-                h1 { color: #333; border-bottom: 3px solid #4CAF50; padding-bottom: 10px; }
-                h2 { color: #555; margin-top: 30px; }
-                .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0; }
-                .metric-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; }
-                .metric-value { font-size: 2em; font-weight: bold; }
-                .metric-label { opacity: 0.9; margin-top: 5px; }
-                .chart { margin: 20px 0; }
-                .insight-box { background: #f0f8ff; border-left: 4px solid #2196F3; padding: 15px; margin: 10px 0; }
-                .alert-box { background: #fff3cd; border-left: 4px solid #ff9800; padding: 15px; margin: 10px 0; }
-                .table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-                .table th, .table td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-                .table th { background: #4CAF50; color: white; }
-                .table tr:hover { background: #f5f5f5; }
+                body {{ font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }}
+                .container {{ max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }}
+                h1 {{ color: #333; border-bottom: 3px solid #4CAF50; padding-bottom: 10px; }}
+                h2 {{ color: #555; margin-top: 30px; }}
+                .metric-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0; }}
+                .metric-card {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; }}
+                .metric-value {{ font-size: 2em; font-weight: bold; }}
+                .metric-label {{ opacity: 0.9; margin-top: 5px; }}
+                .chart {{ margin: 20px 0; }}
+                .insight-box {{ background: #f0f8ff; border-left: 4px solid #2196F3; padding: 15px; margin: 10px 0; }}
+                .alert-box {{ background: #fff3cd; border-left: 4px solid #ff9800; padding: 15px; margin: 10px 0; }}
+                .table {{ width: 100%; border-collapse: collapse; margin: 20px 0; }}
+                .table th, .table td {{ padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }}
+                .table th {{ background: #4CAF50; color: white; }}
+                .table tr:hover {{ background: #f5f5f5; }}
             </style>
         </head>
         <body>
